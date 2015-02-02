@@ -2,8 +2,8 @@ package auth
 
 // Config struct contains the authentication configuration
 type Config struct {
-	Login        loginFn
-	Verification string
+	Identification loginFn
+	Verification   string
 }
 
 type loginFn func(string, string) bool
@@ -20,13 +20,13 @@ func New() Config {
 
 // None function sets the Config struct in order to disable authentication
 func (a *Config) None() {
-	a.Login = none
+	a.Identification = none
 	a.Verification = "none"
 }
 
 // Simple function sets the Config struct in order to enable simple authentication based on provided user and pass
 func (a *Config) Simple(u, p string) {
-	a.Login = simple
+	a.Identification = simple
 	a.Verification = "restricted"
 
 	user = u

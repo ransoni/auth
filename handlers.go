@@ -54,8 +54,8 @@ func (a *Config) Authenticate(next http.Handler) http.Handler {
 	return restrictedHandler(next)
 }
 
-// GetLogin retrieves the user & pass from a POST and authenticates the user against the Login driver
-func (a *Config) GetLogin() http.Handler {
+// GetIdentification retrieves the user & pass from a POST and authenticates the user against the Identification driver
+func (a *Config) GetIdentification() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Redirect(w, r, "/#/login", http.StatusFound)
@@ -80,7 +80,7 @@ func (a *Config) GetLogin() http.Handler {
 		}
 
 		// validate the user with the Login authentication driver
-		successful := a.Login(user, pass)
+		successful := a.Identification(user, pass)
 		if !successful {
 			http.Error(w, fmt.Sprint("Authentication failed"), http.StatusUnauthorized)
 		}
