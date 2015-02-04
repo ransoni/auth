@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/palourde/logger"
 )
 
 // Response returns a JSON
@@ -32,7 +33,7 @@ func publicHandler(next http.Handler) http.Handler {
 func restrictedHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token, err := jwt.ParseFromRequest(r, func(t *jwt.Token) (interface{}, error) {
-			return pub, nil
+			return pubKeyPEM, nil
 		})
 		if token != nil && err == nil {
 			if token.Valid {
@@ -66,28 +67,32 @@ func (a *Config) GetIdentification() http.Handler {
 		var data interface{}
 		err := decoder.Decode(&data)
 		if err != nil {
-			http.Error(w, fmt.Sprint("Could not decode body"), http.StatusInternalServerError)
+			logger.Warningf("Could not decode the body: %s", err)
+			http.Error(w, "", http.StatusInternalServerError)
 		}
 		m, ok := data.(map[string]interface{})
 		if !ok {
-			http.Error(w, fmt.Sprint("Could not decode body"), http.StatusInternalServerError)
+			logger.Warningf("Could not assert the body: %s", err)
+			http.Error(w, "", http.StatusInternalServerError)
 		}
 
 		user := m["user"].(string)
 		pass := m["pass"].(string)
 		if user == "" || pass == "" {
-			http.Error(w, fmt.Sprint("The user and pass fields must not be empty"), http.StatusUnauthorized)
+			http.Error(w, "", http.StatusUnauthorized)
 		}
 
 		// validate the user with the Login authentication driver
 		successful := a.Identification(user, pass)
 		if !successful {
-			http.Error(w, fmt.Sprint("Authentication failed"), http.StatusUnauthorized)
+			logger.Warningf("Login failed for the user %s", err)
+			http.Error(w, "", http.StatusUnauthorized)
 		}
 
 		token, err := GetToken()
 		if err != nil {
-			http.Error(w, fmt.Sprint("Could not create a token"), http.StatusInternalServerError)
+			logger.Warningf("Could not create the token: %s", err)
+			http.Error(w, "", http.StatusInternalServerError)
 		}
 
 		w.Header().Set("Content-Type", "application/json")

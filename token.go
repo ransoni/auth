@@ -1,40 +1,41 @@
 package auth
 
 import (
-	"io/ioutil"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/palourde/logger"
 )
 
 var (
-	rsa, pub []byte
-)
-
-const (
-	rsaPath = "./keys/uchiwa.rsa"
-	pubPath = "./keys/uchiwa.rsa.pub"
+	keyPEM    []byte
+	pubKeyPEM []byte
 )
 
 // GetToken returns a string that contain the token
 func GetToken() (string, error) {
 	t := jwt.New(jwt.GetSigningMethod("RS256"))
-	tokenString, err := t.SignedString(rsa)
+	tokenString, err := t.SignedString(keyPEM)
 	return tokenString, err
 }
 
 func initToken() {
-	var err error
-
-	rsa, err = ioutil.ReadFile(rsaPath)
+	keyPair, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
-		logger.Fatalf("Could not open the private key %s", rsaPath)
-		return
+		panic(err)
 	}
-
-	pub, err = ioutil.ReadFile(pubPath)
+	keyPEM = pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(keyPair),
+	})
+	pubKeyANS1, err := x509.MarshalPKIXPublicKey(&keyPair.PublicKey)
 	if err != nil {
-		logger.Fatalf("Could not open the public key %s", pubPath)
-		return
+		panic(err)
 	}
+	pubKeyPEM = pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PUBLIC KEY",
+		Bytes: pubKeyANS1,
+	})
 }
