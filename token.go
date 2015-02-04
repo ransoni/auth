@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/palourde/logger"
 )
 
 var (
@@ -24,7 +25,7 @@ func GetToken() (string, error) {
 func initToken() {
 	keyPair, err := rsa.GenerateKey(rand.Reader, 1024)
 	if err != nil {
-		panic(err)
+		logger.Fatalf("Could not generate the private key: %s", err)
 	}
 	keyPEM = pem.EncodeToMemory(&pem.Block{
 		Type:  "RSA PRIVATE KEY",
@@ -32,7 +33,7 @@ func initToken() {
 	})
 	pubKeyANS1, err := x509.MarshalPKIXPublicKey(&keyPair.PublicKey)
 	if err != nil {
-		panic(err)
+		logger.Fatalf("Could not generate the public key: %s", err)
 	}
 	pubKeyPEM = pem.EncodeToMemory(&pem.Block{
 		Type:  "RSA PUBLIC KEY",
