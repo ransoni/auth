@@ -34,3 +34,11 @@ func (a *Config) Simple(u, p string) {
 
 	initToken()
 }
+
+// Advanced function allows a third party Identification driver
+func (a *Config) Advanced(driver loginFn) {
+	a.Identification = driver
+	a.Verification = "restricted"
+
+	initToken()
+}
