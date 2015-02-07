@@ -85,7 +85,7 @@ func (a *Config) GetIdentification() http.Handler {
 		// validate the user with the Login authentication driver
 		successful := a.Identification(user, pass)
 		if !successful {
-			logger.Warningf("Login failed for the user %s", err)
+			logger.Warningf("Login failed for the user %s", user)
 			http.Error(w, "", http.StatusUnauthorized)
 		}
 
