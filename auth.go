@@ -6,6 +6,17 @@ type Config struct {
 	Verification   string
 }
 
+// User structure
+type User struct {
+	ID           int64  `db:"id"`
+	Username     string `db:"username"`
+	FullName     string `db:"fullName"`
+	PasswordHash string `db:"passwordHash"`
+	PasswordSalt string `db:"passwordSalt"`
+	Role         string `db:"role"`
+	IsDisabled   bool   `db:"isDisabled"`
+}
+
 type loginFn func(string, string) bool
 
 var (
