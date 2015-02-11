@@ -69,30 +69,41 @@ func (a *Config) GetIdentification() http.Handler {
 		if err != nil {
 			logger.Warningf("Could not decode the body: %s", err)
 			http.Error(w, "", http.StatusInternalServerError)
+			return
 		}
 		m, ok := data.(map[string]interface{})
 		if !ok {
 			logger.Warningf("Could not assert the body: %s", err)
 			http.Error(w, "", http.StatusInternalServerError)
+			return
 		}
 
-		user := m["user"].(string)
-		pass := m["pass"].(string)
-		if user == "" || pass == "" {
+		u := m["user"].(string)
+		p := m["pass"].(string)
+		if u == "" || p == "" {
+			logger.Info("Authentication failed: user and password must not be empty")
 			http.Error(w, "", http.StatusUnauthorized)
+			return
 		}
 
 		// validate the user with the Login authentication driver
-		successful := a.Identification(user, pass)
-		if !successful {
-			logger.Warningf("Login failed for the user %s", user)
+		user, err := a.Identification(u, p)
+		if err != nil {
+			fmt.Println("Nope!")
+			logger.Infof("Authentication failed: %s", err)
 			http.Error(w, "", http.StatusUnauthorized)
+			return
 		}
 
-		token, err := GetToken()
+		// obfuscate the password hash & salt
+		user.PasswordHash = ""
+		user.PasswordSalt = ""
+
+		token, err := GetToken(user)
 		if err != nil {
-			logger.Warningf("Could not create the token: %s", err)
+			logger.Warningf("Authentication failed, could not create the token: %s", err)
 			http.Error(w, "", http.StatusInternalServerError)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")

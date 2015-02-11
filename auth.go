@@ -17,7 +17,7 @@ type User struct {
 	IsDisabled   bool   `db:"isDisabled"`
 }
 
-type loginFn func(string, string) bool
+type loginFn func(string, string) (*User, error)
 
 var (
 	user, pass string

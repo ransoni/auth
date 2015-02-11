@@ -16,8 +16,10 @@ var (
 )
 
 // GetToken returns a string that contain the token
-func GetToken() (string, error) {
+func GetToken(user *User) (string, error) {
 	t := jwt.New(jwt.GetSigningMethod("RS256"))
+	t.Claims["user"] = user
+
 	tokenString, err := t.SignedString(keyPEM)
 	return tokenString, err
 }
