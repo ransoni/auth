@@ -37,12 +37,19 @@ func restrictedHandler(next http.Handler) http.Handler {
 		})
 		if token != nil && err == nil {
 			if token.Valid {
+				authorized := hasPermission(token, r)
+				if !authorized {
+					http.Error(w, "", http.StatusForbidden)
+					return
+				}
 				next.ServeHTTP(w, r)
 			} else {
-				http.Error(w, err.Error(), http.StatusForbidden)
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
 			}
 		} else {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
 		}
 	})
 }
@@ -71,6 +78,7 @@ func (a *Config) GetIdentification() http.Handler {
 			http.Error(w, "", http.StatusInternalServerError)
 			return
 		}
+
 		m, ok := data.(map[string]interface{})
 		if !ok {
 			logger.Warningf("Could not assert the body: %s", err)
@@ -89,17 +97,19 @@ func (a *Config) GetIdentification() http.Handler {
 		// validate the user with the Login authentication driver
 		user, err := a.Identification(u, p)
 		if err != nil {
-			fmt.Println("Nope!")
 			logger.Infof("Authentication failed: %s", err)
 			http.Error(w, "", http.StatusUnauthorized)
 			return
 		}
 
-		// obfuscate the password hash & salt
-		user.PasswordHash = ""
-		user.PasswordSalt = ""
+		role, err := getRole(user.Role)
+		if err != nil {
+			logger.Infof("%s", err)
+			http.Error(w, "", http.StatusUnauthorized)
+			return
+		}
 
-		token, err := GetToken(user)
+		token, err := GetToken(role)
 		if err != nil {
 			logger.Warningf("Authentication failed, could not create the token: %s", err)
 			http.Error(w, "", http.StatusInternalServerError)
