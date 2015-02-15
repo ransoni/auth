@@ -56,7 +56,7 @@ func restrictedHandler(next http.Handler) http.Handler {
 
 // Authenticate calls the proper handler based on whether authentication is enabled or not
 func (a *Config) Authenticate(next http.Handler) http.Handler {
-	if a.Verification == "none" {
+	if a.DriverName == "none" {
 		return publicHandler(next)
 	}
 	return restrictedHandler(next)
@@ -95,7 +95,7 @@ func (a *Config) GetIdentification() http.Handler {
 		}
 
 		// validate the user with the Login authentication driver
-		user, err := a.Identification(u, p)
+		user, err := a.Driver(u, p)
 		if err != nil {
 			logger.Infof("Authentication failed: %s", err)
 			http.Error(w, "", http.StatusUnauthorized)

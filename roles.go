@@ -39,11 +39,11 @@ func hasPermission(t *jwt.Token, r *http.Request) bool {
 	j, _ := json.Marshal(&m)
 	json.Unmarshal(j, &role)
 
-	if r.Method == "GET" {
+	if r.URL.Path == "/users" && !role.Admin {
+		return false
+	} else if r.Method == "GET" {
 		return true
-	} else if r.Method == "POST" && (role.Post || role.Admin) {
-		return true
-	} else if r.URL.Path == "/users" && role.Admin {
+	} else if role.Post || role.Admin {
 		return true
 	}
 

@@ -2,8 +2,8 @@ package auth
 
 // Config struct contains the authentication configuration
 type Config struct {
-	Identification loginFn
-	Verification   string
+	Driver     loginFn
+	DriverName string
 }
 
 // User structure
@@ -11,10 +11,11 @@ type User struct {
 	ID           int64  `db:"id"`
 	Username     string `db:"username"`
 	FullName     string `db:"fullName"`
+	Email        string `db:"email"`
+	Password     string `db:"-"`
 	PasswordHash string `db:"passwordHash"`
 	PasswordSalt string `db:"passwordSalt"`
 	Role         string `db:"role"`
-	IsDisabled   bool   `db:"isDisabled"`
 }
 
 type loginFn func(string, string) (*User, error)
@@ -31,14 +32,14 @@ func New() Config {
 
 // None function sets the Config struct in order to disable authentication
 func (a *Config) None() {
-	a.Identification = none
-	a.Verification = "none"
+	a.Driver = none
+	a.DriverName = "none"
 }
 
 // Simple function sets the Config struct in order to enable simple authentication based on provided user and pass
 func (a *Config) Simple(u, p string) {
-	a.Identification = simple
-	a.Verification = "restricted"
+	a.Driver = simple
+	a.DriverName = "simple"
 
 	user = u
 	pass = p
@@ -47,9 +48,9 @@ func (a *Config) Simple(u, p string) {
 }
 
 // Advanced function allows a third party Identification driver
-func (a *Config) Advanced(driver loginFn) {
-	a.Identification = driver
-	a.Verification = "restricted"
+func (a *Config) Advanced(driver loginFn, driverName string) {
+	a.Driver = driver
+	a.DriverName = driverName
 
 	initToken()
 }
