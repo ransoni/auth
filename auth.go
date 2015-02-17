@@ -16,6 +16,7 @@ type User struct {
 	PasswordHash string `db:"passwordHash"`
 	PasswordSalt string `db:"passwordSalt"`
 	Role         string `db:"role"`
+	Token        string `db:"-"`
 }
 
 type loginFn func(string, string) (*User, error)

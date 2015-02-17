@@ -2,25 +2,11 @@ package auth
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/palourde/logger"
 )
-
-// Response returns a JSON
-type Response map[string]interface{}
-
-func (r Response) String() (s string) {
-	b, err := json.Marshal(r)
-	if err != nil {
-		s = ""
-		return
-	}
-	s = string(b)
-	return
-}
 
 // publicHandler enforce no authentication
 func publicHandler(next http.Handler) http.Handler {
@@ -102,6 +88,10 @@ func (a *Config) GetIdentification() http.Handler {
 			return
 		}
 
+		// obfuscate the user's salt & hash
+		user.PasswordHash = ""
+		user.PasswordSalt = ""
+
 		role, err := getRole(user.Role)
 		if err != nil {
 			logger.Infof("%s", err)
@@ -116,8 +106,17 @@ func (a *Config) GetIdentification() http.Handler {
 			return
 		}
 
+		// Add token to the user struct
+		user.Token = token
+
+		j, err := json.Marshal(user)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, Response{"token": token})
+		w.Write(j)
 		return
 	})
 }
