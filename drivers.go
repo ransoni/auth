@@ -1,12 +1,14 @@
 package auth
 
-func none(u, p string) bool {
-	return true
+import "fmt"
+
+func none(u, p string) (*User, error) {
+	return &User{}, nil
 }
 
-func simple(u, p string) bool {
+func simple(u, p string) (*User, error) {
 	if u == user && p == pass {
-		return true
+		return &User{ID: 0, Username: u, FullName: u, PasswordHash: "", PasswordSalt: "", Role: "operator"}, nil
 	}
-	return false
+	return &User{}, fmt.Errorf("invalid user '%s' or invalid password", u)
 }

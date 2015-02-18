@@ -2,25 +2,11 @@ package auth
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/palourde/logger"
 )
-
-// Response returns a JSON
-type Response map[string]interface{}
-
-func (r Response) String() (s string) {
-	b, err := json.Marshal(r)
-	if err != nil {
-		s = ""
-		return
-	}
-	s = string(b)
-	return
-}
 
 // publicHandler enforce no authentication
 func publicHandler(next http.Handler) http.Handler {
@@ -37,19 +23,26 @@ func restrictedHandler(next http.Handler) http.Handler {
 		})
 		if token != nil && err == nil {
 			if token.Valid {
+				authorized := hasPermission(token, r)
+				if !authorized {
+					http.Error(w, "", http.StatusForbidden)
+					return
+				}
 				next.ServeHTTP(w, r)
 			} else {
-				http.Error(w, err.Error(), http.StatusForbidden)
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
 			}
 		} else {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
 		}
 	})
 }
 
 // Authenticate calls the proper handler based on whether authentication is enabled or not
 func (a *Config) Authenticate(next http.Handler) http.Handler {
-	if a.Verification == "none" {
+	if a.DriverName == "none" {
 		return publicHandler(next)
 	}
 	return restrictedHandler(next)
@@ -69,34 +62,61 @@ func (a *Config) GetIdentification() http.Handler {
 		if err != nil {
 			logger.Warningf("Could not decode the body: %s", err)
 			http.Error(w, "", http.StatusInternalServerError)
+			return
 		}
+
 		m, ok := data.(map[string]interface{})
 		if !ok {
 			logger.Warningf("Could not assert the body: %s", err)
 			http.Error(w, "", http.StatusInternalServerError)
+			return
 		}
 
-		user := m["user"].(string)
-		pass := m["pass"].(string)
-		if user == "" || pass == "" {
+		u := m["user"].(string)
+		p := m["pass"].(string)
+		if u == "" || p == "" {
+			logger.Info("Authentication failed: user and password must not be empty")
 			http.Error(w, "", http.StatusUnauthorized)
+			return
 		}
 
 		// validate the user with the Login authentication driver
-		successful := a.Identification(user, pass)
-		if !successful {
-			logger.Warningf("Login failed for the user %s", user)
+		user, err := a.Driver(u, p)
+		if err != nil {
+			logger.Infof("Authentication failed: %s", err)
 			http.Error(w, "", http.StatusUnauthorized)
+			return
 		}
 
-		token, err := GetToken()
+		// obfuscate the user's salt & hash
+		user.PasswordHash = ""
+		user.PasswordSalt = ""
+
+		role, err := getRole(user.Role)
 		if err != nil {
-			logger.Warningf("Could not create the token: %s", err)
+			logger.Infof("%s", err)
+			http.Error(w, "", http.StatusUnauthorized)
+			return
+		}
+
+		token, err := GetToken(role)
+		if err != nil {
+			logger.Warningf("Authentication failed, could not create the token: %s", err)
 			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+		// Add token to the user struct
+		user.Token = token
+
+		j, err := json.Marshal(user)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, Response{"token": token})
+		w.Write(j)
 		return
 	})
 }
