@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"net/http"
+	"fmt"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/palourde/logger"
@@ -44,12 +45,15 @@ func restrictedHandler(next http.Handler) http.Handler {
 func (a *Config) Authenticate(next http.Handler) http.Handler {
 	if a.DriverName == "none" {
 		return publicHandler(next)
+	} else if a.DriverName == "ldappi" {
+		fmt.Println("Authenticate else if, DriverName == ldap")
 	}
 	return restrictedHandler(next)
 }
 
 // GetIdentification retrieves the user & pass from a POST and authenticates the user against the Identification driver
 func (a *Config) GetIdentification() http.Handler {
+	fmt.Println("OBS!\nGetIdentification in handlers.go")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
 			http.Redirect(w, r, "/#/login", http.StatusFound)
@@ -73,7 +77,9 @@ func (a *Config) GetIdentification() http.Handler {
 		}
 
 		u := m["user"].(string)
+		fmt.Println("User:", m["user"].(string))
 		p := m["pass"].(string)
+		fmt.Println("User:", m["pass"].(string))
 		if u == "" || p == "" {
 			logger.Info("Authentication failed: user and password must not be empty")
 			http.Error(w, "", http.StatusUnauthorized)
