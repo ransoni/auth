@@ -26,13 +26,16 @@ type loginFn func(string, string) (*User, error)
 
 var (
 	user, pass string
+	debug = false
 )
 
 // New function initalizes and returns a Config struct
 func New() Config {
 	a := Config{}
-	fmt.Println("ALARMAA!")
-	fmt.Println(a)
+	if debug {
+		fmt.Println("ALARMAA!")
+		fmt.Println(a)
+	}
 	return a
 }
 
@@ -53,8 +56,8 @@ func (a *Config) Simple(u, p string) {
 	initToken()
 }
 
-func (a *Config) Ldappi(u, p string) {
-	a.Driver = ldappi
+func (a *Config) LdapAd(u, p string) {
+	a.Driver = ldapAd
 	a.DriverName = "ldap"
 
 	user = u
@@ -62,6 +65,23 @@ func (a *Config) Ldappi(u, p string) {
 
 	initToken()
 }
+
+func (a *Config) LdapIpa(u, p string) {
+	a.Driver = ldapIpa
+	a.DriverName = "ldap"
+
+	user = u
+	pass = p
+
+	initToken()
+}
+
+func (a *Config) GetUser(t, e string) map[string]string {
+	_, _ = getUserInfo(t, e)
+
+	return nil
+}
+
 
 // Advanced function allows a third party Identification driver
 func (a *Config) Advanced(driver loginFn, driverName string) {
